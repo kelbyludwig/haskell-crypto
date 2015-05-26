@@ -1,16 +1,16 @@
 module Main where
 
 import System.Environment
-import Data.List
 
 import Challenges
 
 dispatch :: [(String, String)]
-dispatch = [ ("1", challenge1) ]
+dispatch = [ ("1", challenge1),
+             ("2", challenge2) ]
 
 
 main :: IO ()
 main = do
-    (com:args) <- getArgs
+    (com:_) <- getArgs
     let (Just f) = lookup com dispatch 
     putStr f

@@ -1,13 +1,9 @@
 module Challenges where
 
-import System.IO
 import Data.List
 
 import qualified Encoding as E
 import qualified Crypto as C
-import qualified Data.Word8 as W8
-import qualified Data.ByteString as B
-
 
 challenge1 :: IO String
 challenge1 = return $ E.toBase64 (E.fromHex str)

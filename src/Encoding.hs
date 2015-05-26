@@ -17,3 +17,9 @@ toBase64 = C8.unpack . B64.encode
 
 fromBase64 :: String -> B.ByteString
 fromBase64 = B64.decodeLenient . C8.pack
+
+toBytes :: String -> B.ByteString
+toBytes = C8.pack 
+
+fromBytes :: B.ByteString -> String
+fromBytes = C8.unpack

@@ -20,15 +20,24 @@ xor' key buf = case B.length key `compare` B.length buf of
                               k = B.take l key
                     EQ -> B.pack (B.zipWith xor key buf)
 
---TODO: Use list comprehension to create a list of 256 different byte values
---TODO: Data.CHar is useful
---TODO: ['\0'..'\255'] viola!
---  Add singleton to make it a Char8
-
 asciiScore :: B.ByteString -> Float
-asciiScore bs = B.foldl (\acc x -> if
+asciiScore buf = B.foldl (\acc x -> if
                         | W8.isAlpha x -> acc + 1.0
                         | W8.isSpace x -> acc + 1.0
                         | W8.isDigit x -> acc + 0.2
                         | W8.isPunctuation x -> acc + 0.4
-                        | otherwise -> acc + 0.0) 0.0 bs
+                        | otherwise -> acc + 0.0) 0.0 buf
+
+findSingleByteXorKey :: B.ByteString -> (Float, B.ByteString)
+findSingleByteXorKey buf = (maximum scores, key) 
+                             where bytes = map B.singleton [W8._nul..]
+                                   possibilities = map (\key -> xor' key buf) bytes
+                                   scores = map asciiScore possibilities
+                                   kv = zip scores bytes
+                                   Just key = lookup (maximum scores) kv
+
+--The comparison value is adjustable.
+detectSingleByteXor :: B.ByteString -> Bool
+detectSingleByteXor buf = if average > 0.92 then True else False
+                            where (score, key) = findSingleByteXorKey buf
+                                  average = score / fromIntegral (B.length buf)

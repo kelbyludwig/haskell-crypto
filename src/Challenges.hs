@@ -1,6 +1,7 @@
 module Challenges where
 
 import System.IO
+import Data.List
 
 import qualified Encoding as E
 import qualified Crypto as C
@@ -17,18 +18,16 @@ challenge2 = return $ E.toHex $ C.xor' st1 st2
                 where st1 = E.fromHex "1c0111001f010100061a024b53535009181c"
                       st2 = E.fromHex "686974207468652062756c6c277320657965" 
 challenge3 :: IO String
---challenge3 = E.toHex (possibilities !! 0)
-challenge3 = return $ show $ (maximum scores, max)
+challenge3 = return $ show $ C.xor' key str
                 where str = E.fromHex "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
-                      bytes = map B.singleton [W8._nul..]
-                      possibilities = map (\key -> C.xor' key str) bytes
-                      scores = map C.asciiScore possibilities
-                      kv = zip scores possibilities
-                      Just max = lookup (maximum scores) kv
+                      (_,key) = C.findSingleByteXorKey str 
 
 challenge4 :: IO String
 challenge4 = do
                 f <- readFile "./src/Files/4.txt"
-                let l = lines f
-                return (l !! 0)
-                --TODO: Map over lines to "score" each ciphertext                
+                let l = map E.fromHex $ lines f
+                let possibilities =  map C.detectSingleByteXor l
+                let (Just index) = elemIndex True possibilities
+                let str = l !! index
+                let (_,key) = C.findSingleByteXorKey str
+                return $ show $ C.xor' key str

@@ -1,7 +1,6 @@
 module Main where
 
 import System.Environment
-import System.IO
 import Challenges
 
 dispatch :: [(String, IO String)]

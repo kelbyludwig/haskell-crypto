@@ -31,7 +31,7 @@ asciiScore buf = B.foldl (\acc x -> if
 findSingleByteXorKey :: B.ByteString -> (Float, B.ByteString)
 findSingleByteXorKey buf = (maximum scores, key) 
                              where bytes = map B.singleton [W8._nul..]
-                                   possibilities = map (\key -> xor' key buf) bytes
+                                   possibilities = map (\k -> xor' k buf) bytes
                                    scores = map asciiScore possibilities
                                    kv = zip scores bytes
                                    Just key = lookup (maximum scores) kv
@@ -39,5 +39,11 @@ findSingleByteXorKey buf = (maximum scores, key)
 --The comparison value is adjustable.
 detectSingleByteXor :: B.ByteString -> Bool
 detectSingleByteXor buf = if average > 0.92 then True else False
-                            where (score, key) = findSingleByteXorKey buf
+                            where (score, _) = findSingleByteXorKey buf
                                   average = score / fromIntegral (B.length buf)
+
+hammingWeight :: B.ByteString -> B.ByteString -> Int
+hammingWeight bs1 bs2 = B.foldl hm 0 bsx 
+                            where bsx = xor' bs1 bs2
+                                  hm = \acc x -> acc + popCount x
+

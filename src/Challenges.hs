@@ -4,6 +4,7 @@ import Data.List
 
 import qualified Encoding as E
 import qualified Crypto as C
+import qualified AES as AES
 
 challenge1 :: IO String
 challenge1 = return $ E.toBase64 (E.fromHex str)
@@ -37,3 +38,10 @@ challenge6 = do
                 f <- readFile "./src/Files/6.txt"
                 let bs  = E.fromBase64 f
                 return $ show $ C.breakViegnere bs
+
+challenge7 :: IO String
+challenge7 = do
+                f <- readFile "./src/Files/7.txt"
+                let ct = E.fromBase64 f
+                let key = E.toBytes "YELLOW SUBMARINE"
+                return $ show $ AES.ecbDecrypt key ct

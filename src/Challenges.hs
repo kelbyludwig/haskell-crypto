@@ -45,3 +45,10 @@ challenge7 = do
                 let ct = E.fromBase64 f
                 let key = E.toBytes "YELLOW SUBMARINE"
                 return $ show $ AES.ecbDecrypt key ct
+
+challenge8 :: IO String
+challenge8 = do
+                f <- readFile "./src/Files/8.txt"
+                let cts = map E.fromHex $ lines f
+                let (Just index) = elemIndex True $ map AES.ecbDetect cts
+                return $ show $ (index, cts !! index)

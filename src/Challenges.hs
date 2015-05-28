@@ -52,3 +52,6 @@ challenge8 = do
                 let cts = map E.fromHex $ lines f
                 let (Just index) = elemIndex True $ map AES.ecbDetect cts
                 return $ show $ (index, cts !! index)
+
+challenge9 :: IO String
+challenge9 = return $ show $ AES.pkcs7 (E.toBytes "YELLOW SUBMARINE") 20

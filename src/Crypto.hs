@@ -48,7 +48,7 @@ hammingWeight bs1 bs2 = B.foldl hm 0 bsx
                             where bsx = xor' bs1 bs2
                                   hm = \acc x -> acc + popCount x
 
-normalizedHammingWeight :: (Fractional a) => [B.ByteString] -> a
+normalizedHammingWeight :: [B.ByteString] -> Float
 normalizedHammingWeight list = (foldl (+) 0.0 scoresn) / (fromIntegral $ length scoresn)
                                   where blocksize = fromIntegral $ B.length $ list !! 0
                                         scores = zipWith hammingWeight list (drop 1 list)

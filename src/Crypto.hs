@@ -2,6 +2,7 @@
 module Crypto where
 
 import Data.Bits
+import qualified Data.List as L
 import qualified Data.ByteString as B
 import qualified Data.Word8 as W8
 
@@ -25,8 +26,8 @@ asciiScore buf = B.foldl (\acc x -> if
                         | W8.isAlpha x -> acc + 1.0
                         | W8.isSpace x -> acc + 1.0
                         | W8.isDigit x -> acc + 0.2
-                        | W8.isPunctuation x -> acc + 0.4
-                        | otherwise -> acc + 0.0) 0.0 buf
+                        | W8.isPunctuation x -> acc + 0.02 
+                        | otherwise -> acc - 1.0) 0.0 buf
 
 findSingleByteXorKey :: B.ByteString -> (Float, B.ByteString)
 findSingleByteXorKey buf = (maximum scores, key) 
@@ -46,4 +47,23 @@ hammingWeight :: B.ByteString -> B.ByteString -> Int
 hammingWeight bs1 bs2 = B.foldl hm 0 bsx 
                             where bsx = xor' bs1 bs2
                                   hm = \acc x -> acc + popCount x
+
+normalizedHammingWeight :: (Fractional a) => [B.ByteString] -> a
+normalizedHammingWeight list = (foldl (+) 0.0 scoresn) / (fromIntegral $ length scoresn)
+                                  where blocksize = fromIntegral $ B.length $ list !! 0
+                                        scores = zipWith hammingWeight list (drop 1 list)
+                                        scoresn = map (\x -> (fromIntegral x) / blocksize) scores
+
+breakViegnere :: B.ByteString -> B.ByteString
+breakViegnere ct = B.concat (map (snd . findSingleByteXorKey . B.pack) (L.transpose blocks))
+                    where keysizes  = [2..60]
+                          blockList = map (createBlocks ct) keysizes
+                          scores = map normalizedHammingWeight blockList
+                          Just i = L.elemIndex (minimum scores) scores
+                          keysize = i + 2
+                          blocks = map B.unpack $ createBlocks ct keysize
+
+createBlocks :: B.ByteString -> Int -> [B.ByteString]
+createBlocks bs size = if size <= B.length bs then x : (createBlocks xs size) else [xs]
+                       where (x,xs) = B.splitAt size bs
 

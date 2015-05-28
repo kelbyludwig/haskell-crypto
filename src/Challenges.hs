@@ -32,3 +32,9 @@ challenge5 :: IO String
 challenge5 = return $ show $ E.toHex (C.xor' key str)
                 where str = E.toBytes "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
                       key = E.toBytes "ICE"
+
+challenge6 = do 
+                f <- readFile "./src/Files/6.txt"
+                let bs  = E.fromBase64 f
+                let key = C.breakViegnere bs
+                return $ show $ C.breakViegnere bs

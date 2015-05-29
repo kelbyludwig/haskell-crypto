@@ -3,6 +3,7 @@ module Challenges where
 import Data.List
 
 import qualified Encoding as E
+import qualified Data.ByteString as B
 import qualified Crypto as C
 import qualified AES as AES
 
@@ -55,3 +56,12 @@ challenge8 = do
 
 challenge9 :: IO String
 challenge9 = return $ show $ AES.pkcs7 (E.toBytes "YELLOW SUBMARINE") 20
+
+challenge10 :: IO String
+challenge10 = do 
+                f <- readFile "./src/Files/10.txt"
+                let ct = E.fromBase64 f
+                let key = E.toBytes "YELLOW SUBMARINE"
+                let iv = B.replicate 16 0
+                let mes = AES.cbcDecrypt key iv ct 
+                return $ show mes

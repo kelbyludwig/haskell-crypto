@@ -64,4 +64,5 @@ challenge10 = do
                 let key = E.toBytes "YELLOW SUBMARINE"
                 let iv = B.replicate 16 0
                 let mes = AES.cbcDecrypt key iv ct 
-                return $ show mes
+                let ct2 = AES.cbcEncrypt key iv mes
+                return $ show (ct2 == ct)

@@ -64,6 +64,6 @@ breakViegnere ct = B.concat (map (snd . findSingleByteXorKey . B.pack) (L.transp
                           blocks = map B.unpack $ createBlocks ct keysize
 
 createBlocks :: B.ByteString -> Int -> [B.ByteString]
-createBlocks bs size = if size <= B.length bs then x : (createBlocks xs size) else [xs]
+createBlocks bs size = if size <= B.length bs then x : (createBlocks xs size) else (if xs == B.empty then [] else [xs])
                        where (x,xs) = B.splitAt size bs
 

@@ -66,3 +66,8 @@ challenge10 = do
                 let mes = AES.cbcDecrypt key iv ct 
                 let ct2 = AES.cbcEncrypt key iv mes
                 return $ show (ct2 == ct)
+
+challenge11 :: IO String
+challenge11 = do
+                (m,o) <- AES.createAESOracle
+                return $ show (m,AES.cbcOrEbc o)

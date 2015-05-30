@@ -25,6 +25,7 @@ executable CryptoPals-Haskell
                        word8,
                        base64-bytestring,
                        base16-bytestring,
-                       cipher-aes
+                       cipher-aes,
+                       random
   hs-source-dirs:      src
   default-language:    Haskell2010

@@ -28,7 +28,7 @@ ecbChosenPrefix oracle = ecbChosenPrefix' oracle 16 B.empty
                                   max = div ct 16
 
 ecbChosenPrefix' :: (B.ByteString -> B.ByteString) -> Int -> B.ByteString -> B.ByteString
-ecbChosenPrefix' _      0 known = known
+ecbChosenPrefix' _      0 known = B.empty
 ecbChosenPrefix' oracle 0 known = B.append known (ecbChosenPrefix' oracle 16 B.empty)
 ecbChosenPrefix' oracle n known = B.append byte  (ecbChosenPrefix' oracle (n-1) (B.append known byte)) 
                                          where letters   = map B.singleton $ filter W8.isPrint [0..255]

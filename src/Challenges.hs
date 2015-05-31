@@ -71,3 +71,12 @@ challenge11 :: IO String
 challenge11 = do
                 (m,o) <- AES.createAESOracle
                 return $ show (m,AES.cbcOrEbc o)
+
+challenge12 :: IO String
+challenge12 = do
+                let str = E.fromBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg\naGFpciBjYW4gYmxvdwpUaGUgZ    2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq\ndXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg\nYnkK"
+                oracle <- AES.createECBOracle str
+                let ct = oracle B.empty
+                let blocks = C.createBlocks ct 16
+                let len = length blocks
+                return $ show $ AES.ecbChosenPrefix oracle

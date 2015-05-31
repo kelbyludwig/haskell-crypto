@@ -22,14 +22,30 @@ ecbDetect bs = if length blocks == length blocksNoDupes then False else True
                 where blocks        = C.createBlocks bs 16
                       blocksNoDupes = nub blocks
 
+ecbChosenPrefix :: (B.ByteString -> B.ByteString) -> B.ByteString
+ecbChosenPrefix oracle = ecbChosenPrefix' oracle 16 B.empty
+                            where ct  = B.length $ oracle B.empty
+                                  max = div ct 16
+
+ecbChosenPrefix' :: (B.ByteString -> B.ByteString) -> Int -> B.ByteString -> B.ByteString
+ecbChosenPrefix' _      0 known = known
+ecbChosenPrefix' oracle 0 known = B.append known (ecbChosenPrefix' oracle 16 B.empty)
+ecbChosenPrefix' oracle n known = B.append byte  (ecbChosenPrefix' oracle (n-1) (B.append known byte)) 
+                                         where letters   = map B.singleton $ filter W8.isPrint [0..255]
+                                               filler    = B.replicate (n-1) 0
+                                               chosenpts = map (B.append (B.append filler known)) letters
+                                               chosencts = map (\x -> B.take 16 $ oracle x) chosenpts
+                                               unknown   = B.take 16 $ oracle filler
+                                               (Just index) = elemIndex unknown chosencts
+                                               byte = letters !! index
+
 --CBC related functions
 cbcEncrypt :: B.ByteString -> B.ByteString -> B.ByteString -> B.ByteString
 cbcEncrypt key iv mes = cbcEncrypt' aes blocks iv
-                            where mespad = pkcs7 mes 16
-                                  blocks = C.createBlocks mes 16
+                            where blocks = C.createBlocks mes 16
                                   aes = ecbEncrypt key 
 
-
+cbcEncrypt' :: (B.ByteString -> B.ByteString) -> [B.ByteString] -> B.ByteString -> B.ByteString
 cbcEncrypt' _ [] _     = B.empty
 cbcEncrypt' aes (m:[]) ct = aes (C.xor' m ct)
 cbcEncrypt' aes (m:ms) ct = B.append ct' (cbcEncrypt' aes ms ct')
@@ -46,7 +62,6 @@ cbcDecrypt' aes (c:[]) m = C.xor' (aes c) m
 cbcDecrypt' aes (c:cs) m  = B.append m' (cbcDecrypt' aes cs c)
                                     where m' = C.xor' (aes c) m
 
-
 cbcOrEbc :: (B.ByteString -> B.ByteString) -> AESMode
 cbcOrEbc oracle = if ecbDetect ciphert then ECB else CBC
                     where mybytes = B.replicate 200 0      
@@ -59,7 +74,14 @@ pkcs7 bs padsize = B.append bs (B.replicate padlen pad)
                                   padlen = padsize - (mod bslen padsize) 
                                   pad = (B.unpack $ B.singleton $ fromIntegral padlen) !! 0
 
+createECBOracle :: B.ByteString -> IO (B.ByteString -> B.ByteString)
+createECBOracle hidden = do 
+                    g <- R.newStdGen
+                    let key = B.pack $ Prelude.take 16 (R.randomRs (W8._nul, 255) g)
+                    let oracle = (\input -> ecbEncrypt key $ pkcs7 (B.append input hidden) 16)
+                    return oracle
 
+createAESOracle :: IO (AESMode, (B.ByteString -> B.ByteString))
 createAESOracle = do
                     g <- R.newStdGen
                     let coin = ((Prelude.take 1 (R.randomRs (0, 1) g)) :: [Int]) !! 0

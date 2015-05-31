@@ -23,21 +23,24 @@ ecbDetect bs = if length blocks == length blocksNoDupes then False else True
                       blocksNoDupes = nub blocks
 
 ecbChosenPrefix :: (B.ByteString -> B.ByteString) -> B.ByteString
-ecbChosenPrefix oracle = ecbChosenPrefix' oracle 16 B.empty
-                            where ct  = B.length $ oracle B.empty
-                                  max = div ct 16
+ecbChosenPrefix oracle = ecbChosenPrefix' oracle ctlen pad numblocks B.empty
+                            where ct     = oracle B.empty
+                                  ctlen  = B.length ct
+                                  pad    = B.replicate ctlen 0
+                                  numblocks = div ctlen 16
 
-ecbChosenPrefix' :: (B.ByteString -> B.ByteString) -> Int -> B.ByteString -> B.ByteString
-ecbChosenPrefix' _      0 known = B.empty
-ecbChosenPrefix' oracle 0 known = B.append known (ecbChosenPrefix' oracle 16 B.empty)
-ecbChosenPrefix' oracle n known = B.append byte  (ecbChosenPrefix' oracle (n-1) (B.append known byte)) 
-                                         where letters   = map B.singleton $ filter W8.isPrint [0..255]
-                                               filler    = B.replicate (n-1) 0
-                                               chosenpts = map (B.append (B.append filler known)) letters
-                                               chosencts = map (\x -> B.take 16 $ oracle x) chosenpts
-                                               unknown   = B.take 16 $ oracle filler
-                                               (Just index) = elemIndex unknown chosencts
-                                               byte = letters !! index
+ecbChosenPrefix' :: (B.ByteString -> B.ByteString) -> Int -> B.ByteString -> Int -> B.ByteString -> B.ByteString
+ecbChosenPrefix' _      0 _   _         _     = B.empty
+ecbChosenPrefix' oracle n pad numblocks known = B.append byte (ecbChosenPrefix' oracle (n-1) (B.tail pad) numblocks (B.append known byte)) 
+                                                 where letters    = map B.singleton [0..255]
+                                                       filler     = B.append (B.tail pad) known
+                                                       chosenpts  = map (B.append filler) letters
+                                                       dropnum    = 16 * (numblocks - 1)
+                                                       chosencts  = map (\x -> B.take 16 $ B.drop dropnum $ oracle x) chosenpts
+                                                       unknown    = B.take 16 $ B.drop dropnum $ oracle (B.tail pad)
+                                                       byte = case elemIndex unknown chosencts of
+                                                                        (Just ind) -> letters !! ind
+                                                                        Nothing    -> B.singleton 42                
 
 --CBC related functions
 cbcEncrypt :: B.ByteString -> B.ByteString -> B.ByteString -> B.ByteString

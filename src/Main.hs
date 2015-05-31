@@ -15,7 +15,8 @@ dispatch = [ ("1", challenge1),
              ("9", challenge9),
              ("10", challenge10),
              ("11", challenge11),
-             ("12", challenge12) ]
+             ("12", challenge12),
+             ("13", challenge13) ]
 
 
 main :: IO ()

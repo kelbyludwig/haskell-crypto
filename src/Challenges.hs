@@ -6,6 +6,7 @@ import qualified Encoding as E
 import qualified Data.ByteString as B
 import qualified Crypto as C
 import qualified AES as AES
+import qualified Profile as P
 
 challenge1 :: IO String
 challenge1 = return $ E.toBase64 (E.fromHex str)
@@ -80,3 +81,6 @@ challenge12 = do
                 let blocks = C.createBlocks ct 16
                 let len = length blocks
                 return $ show $ AES.ecbChosenPrefix oracle
+
+challenge13 :: IO String
+challenge13 = return $ show $ P.profileFor "kelbyludwig@fake.com"

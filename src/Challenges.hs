@@ -83,4 +83,8 @@ challenge12 = do
                 return $ show $ AES.ecbChosenPrefix oracle
 
 challenge13 :: IO String
-challenge13 = return $ show $ P.profileFor "kelbyludwig@fake.com"
+challenge13 = do    
+                key <- AES.createAESKey
+                let oracle = P.profileOracle key
+                return $ show $ oracle "kelby@test.com" 
+

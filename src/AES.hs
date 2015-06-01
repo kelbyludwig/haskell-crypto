@@ -103,3 +103,8 @@ createAESOracle = do
                     let m = if coin == 1 then CBC else ECB
                     let oracle = (\input -> mode $ pkcs7 (B.append (B.append bytesPre input) bytesApp) 16)
                     return (m,oracle)
+
+createAESKey :: IO (B.ByteString)
+createAESKey = do
+                 g <- R.newStdGen
+                 return $ B.pack $ take 16 (R.randomRs (W8._nul, 255) g)

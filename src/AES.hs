@@ -72,7 +72,7 @@ cbcOrEbc oracle = if ecbDetect ciphert then ECB else CBC
 
 --Misc. AES Functions
 pkcs7 :: B.ByteString -> Int -> B.ByteString
-pkcs7 bs padsize = B.append bs (B.replicate padlen pad)
+pkcs7 bs padsize = if padlen == 16 then bs else  B.append bs (B.replicate padlen pad)
                             where bslen = B.length bs
                                   padlen = padsize - (mod bslen padsize) 
                                   pad = (B.unpack $ B.singleton $ fromIntegral padlen) !! 0

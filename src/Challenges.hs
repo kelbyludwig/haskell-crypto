@@ -75,7 +75,7 @@ challenge11 = do
 
 challenge12 :: IO String
 challenge12 = do
-                let str = E.fromBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg\naGFpciBjYW4gYmxvdwpUaGUgZ    2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq\ndXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg\nYnkK"
+                let str = E.fromBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg\naGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq\ndXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg\nYnkK"
                 oracle <- AES.createECBOracle str
                 let ct = oracle B.empty
                 let blocks = C.createBlocks ct 16
@@ -86,5 +86,11 @@ challenge13 :: IO String
 challenge13 = do    
                 key <- AES.createAESKey
                 let oracle = P.profileOracle key
-                return $ show $ oracle "kelby@test.com" 
-
+                let pt1 = "AAAAAAAAAAAA" --This should put role=" at the second to last block
+                let pt2 = "AAAAAAAAAAadmin\11\11\11\11\11\11\11\11\11\11\11"
+                let ct1 = oracle pt1 
+                let ct2 = oracle pt2
+                let first  = B.take 32 ct1
+                let second = B.take 16 $ B.drop 16 ct2
+                return $ show $ AES.ecbDecrypt key (B.append first second)
+                

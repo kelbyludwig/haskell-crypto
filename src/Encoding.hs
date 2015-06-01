@@ -5,7 +5,6 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Char8 as C8
 
-
 fromHex :: String -> B.ByteString
 fromHex = fst . B16.decode . C8.pack
 

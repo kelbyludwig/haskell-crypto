@@ -93,4 +93,11 @@ challenge13 = do
                 let first  = B.take 32 ct1
                 let second = B.take 16 $ B.drop 16 ct2
                 return $ show $ AES.ecbDecrypt key (B.append first second)
-                
+               
+challenge14 :: IO String
+challenge14 = do
+              let str = E.fromBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg\naGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq\ndXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg\nYnkK"
+              oracle <- AES.createECBOracleRandomPrefix str
+              return $ show $ AES.ecbRandomPrefixDecrypt oracle  
+
+ --Keep adding As until you get (# OF SECRET BLOCKS) repeating blocks. Code from 12 should take it from there. 

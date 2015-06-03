@@ -63,6 +63,7 @@ breakViegnere ct = B.concat (map (snd . findSingleByteXorKey . B.pack) (L.transp
                           keysize = i + 2
                           blocks = map B.unpack $ createBlocks ct keysize
 
+--TODO: This just drops any bytes that don't cross a "size" threshold. e.g. createBlocks "YELLOW SUBMARINES" 16 would drop the last "S"
 createBlocks :: B.ByteString -> Int -> [B.ByteString]
 createBlocks bs size = if size <= B.length bs then x : (createBlocks xs size) else (if xs == B.empty then [] else [xs])
                        where (x,xs) = B.splitAt size bs

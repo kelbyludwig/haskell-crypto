@@ -6,6 +6,7 @@ import qualified System.Random as R
 import qualified Crypto.Cipher.AES as AES
 import qualified Data.ByteString as B
 import qualified Crypto as C
+import qualified Encoding as E
 
 
 data AESMode = ECB | CBC deriving (Show)
@@ -41,6 +42,18 @@ ecbChosenPrefix' oracle n pad numblocks known = B.append byte (ecbChosenPrefix' 
                                                        byte = case elemIndex unknown chosencts of
                                                                         (Just ind) -> letters !! ind
                                                                         Nothing    -> B.singleton 42                
+
+--ecbRandomPrefixDecrypt :: (B.ByteString -> B.ByteString) -> B.ByteString
+ecbRandomPrefixDecrypt oracle = ecbRandomPrefixDecrypt' oracle ctlen pad numblocks B.empty
+                                   where ct     = oracle B.empty
+                                         ctlen  = B.length ct
+                                         pad    = B.replicate ctlen 0
+                                         numblocks = div ctlen 16
+
+ecbRandomPrefixDecrypt' :: (B.ByteString -> B.ByteString) -> Int -> B.ByteString -> Int -> B.ByteString -> Int
+ecbRandomPrefixDecrypt' oracle n pad numblocks known = numberOfRepeatBlocks (oracle $ E.toBytes "YELLOW SUBMARINE")
+                                                        where soManyAs             = iterate (B.append $ E.toBytes "A") (E.toBytes "A")
+                                                              numberOfRepeatBlocks = \x -> let b = C.createBlocks x 16 in (length b) - (length $ nub b)
 
 --CBC related functions
 cbcEncrypt :: B.ByteString -> B.ByteString -> B.ByteString -> B.ByteString
@@ -83,6 +96,18 @@ createECBOracle hidden = do
                     let key = B.pack $ Prelude.take 16 (R.randomRs (W8._nul, 255) g)
                     let oracle = (\input -> ecbEncrypt key $ pkcs7 (B.append input hidden) 16)
                     return oracle
+
+createECBOracleRandomPrefix :: B.ByteString -> IO (B.ByteString -> B.ByteString)
+createECBOracleRandomPrefix  hidden = do 
+                                         g <- R.newStdGen
+                                         let key = B.pack $ Prelude.take 16 (R.randomRs (W8._nul, 255) g)
+                                         g2 <- R.newStdGen
+                                         let length = head $ take 1 (R.randomRs (0, 64) g2)
+                                         g3 <- R.newStdGen
+                                         let prefix = B.pack $ take length (R.randomRs (W8._nul, 255) g3)
+                                         let oracle = (\input -> ecbEncrypt key $ pkcs7 (B.concat [prefix, input, hidden]) 16)
+                                         return oracle
+
 
 createAESOracle :: IO (AESMode, (B.ByteString -> B.ByteString))
 createAESOracle = do

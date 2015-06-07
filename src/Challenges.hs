@@ -97,4 +97,14 @@ challenge14 = do
               oracle <- AES.createECBOracleRandomPrefix str
               return $ show $ AES.ecbRandomPrefixDecrypt oracle  
 
- --Keep adding As until you get (# OF SECRET BLOCKS) repeating blocks. Code from 12 should take it from there. 
+challenge15 :: IO String
+challenge15 = do
+                let s1 = E.toBytes "ICE ICE BABY\04\04\04\04"
+                let s2 = E.toBytes "ICE ICE BABY\05\05\05\05"
+                let s3 = E.toBytes "ICE ICE BABY\04\03\02\01"
+                let s4 = E.toBytes "ICE ICE BABY\01\02\03\04"
+                putStrLn $ show $ AES.pkcs7Strip s1
+                putStrLn $ show $ AES.pkcs7Strip s2
+                putStrLn $ show $ AES.pkcs7Strip s3
+                putStrLn $ show $ AES.pkcs7Strip s4
+                return ""

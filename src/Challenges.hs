@@ -4,9 +4,11 @@ import Data.List
 
 import qualified Encoding as E
 import qualified Data.ByteString as B
+import qualified Data.Bits as BIT
 import qualified Crypto as C
 import qualified AES as AES
 import qualified Profile as P
+import qualified Data.Word8 as W8
 
 challenge1 :: IO String
 challenge1 = return $ E.toBase64 (E.fromHex str)
@@ -108,3 +110,24 @@ challenge15 = do
                 putStrLn $ show $ AES.pkcs7Strip s3
                 putStrLn $ show $ AES.pkcs7Strip s4
                 return ""
+
+challenge16 :: IO String
+challenge16 = do
+                key <- AES.createAESKey
+                iv  <- AES.createAESKey
+                let pre  = E.toBytes "comment1=cooking%20MCs;userdata="
+                let post = E.toBytes ";comment2=%20like%20a%20pound%20of%20bacon"
+                let filt = E.toBytes ";="
+                let func = \x -> let clean = B.filter . flip B.notElem in B.concat [pre, clean filt x, post]
+                let oracle = \x -> AES.cbcEncrypt key iv $ AES.pkcs7 (func x) 16
+                let string = E.toBytes "AadminAtrue"
+                let cipher = oracle string
+                let block  = B.take 16 $ B.drop 16 $ cipher
+                let bytes  = B.unpack block
+                let b1     = BIT.xor W8._z (head bytes)
+                let byte1  = concat [[b1], tail bytes]
+                let b2     = BIT.xor W8._bar (head $ drop 6 bytes)
+                let byte6  = concat [take 6 byte1, [b2], drop 7 byte1]
+                let rebuild = B.pack $ concat [take 16 $ B.unpack cipher, byte6, take 16 $ drop 32 $ B.unpack cipher]
+                putStrLn $ show $ AES.cbcDecrypt key iv cipher
+                return $ show $ AES.cbcDecrypt key iv rebuild

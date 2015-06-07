@@ -28,3 +28,8 @@ profileParse str = pairs
 profileOracle :: B.ByteString -> String -> B.ByteString
 profileOracle key str = AES.ecbEncrypt key $ AES.pkcs7 (E.toBytes ergh) 16
                         where ergh = "email=" ++ str ++ "&foo=bar&role=user"
+
+isAdmin :: B.ByteString -> Bool
+isAdmin bs = case B.findSubstring (E.toBytes ";admin=true;") bs of
+                Nothing -> False
+                Just _  -> True

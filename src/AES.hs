@@ -90,15 +90,15 @@ cbcOrEbc oracle = if ecbDetect ciphert then ECB else CBC
 --Misc. AES Functions
 --TODO: If the message length is divisible by 16, you still bad an extra block :p
 pkcs7 :: B.ByteString -> Int -> B.ByteString
-pkcs7 bs padsize = if padlen == 16 then bs else  B.append bs (B.replicate padlen pad)
+pkcs7 bs padsize = B.append bs (B.replicate padlen pad)
                             where bslen = B.length bs
                                   padlen = padsize - (mod bslen padsize) 
                                   pad = (B.unpack $ B.singleton $ fromIntegral padlen) !! 0
 byteMap :: [(W8.Word8, Int)]
-byteMap = take 16 $ zip [W8._nul..] [0..]
+byteMap = take 17 $ zip [W8._nul..] [0..]
 
 intMap :: [(Int, W8.Word8)]
-intMap  = take 16 $ zip [0..] [W8._nul..]
+intMap  = take 17 $ zip [0..] [W8._nul..]
 
 pkcs7Valid :: B.ByteString -> Bool
 pkcs7Valid bs = case lookup len intMap of

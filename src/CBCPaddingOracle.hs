@@ -24,36 +24,29 @@ challenge17 = do
                 let oracle = paddingOracle key iv             
                 return $ show $ attack oracle iv ct
 
-attack oracle iv ct = getIntermiedateState oracle test 16 [] soh  
+attack oracle iv ct = getIntermiedateState oracle test2 test 16 [] soh 
                        where blocks = C.createBlocks ct 16
                              len = length blocks
                              test = blocks !! (len-1)
+                             test2 = blocks !! (len-2)
                              soh = [W8._nul..] !! 1
                              
 
 --Should discover intermiedate state of dblock by manipulating rblock and sending to oracle
-getIntermiedateState o dblock 15 is padbyte = mapo
-                                                   where n = 15
-                                                         rblock   = B.replicate (n-1) 0
-                                                         rblocks  = map (B.snoc rblock) [W8._nul..]
-                                                         post     = B.pack $ map (\x -> BIT.xor x padbyte) is
-                                                         newcts   = map (\x -> B.append (B.append x post) dblock) rblocks
-                                                         mapo     = map o newcts
-                                                         --(Just i) = elemIndex True mapo
-                                                         --(Just b) = lookup i intByteMap                                                    
-                                                         --padbyte' = succ padbyte
-                                                         --is'      = b : is
-    --NEED: variable to keep track of is byt
-getIntermiedateState o dblock n is padbyte = getIntermiedateState o dblock (n-1) is' padbyte'
-                                              where rblock   = B.replicate (n-1) 0
-                                                    rblocks  = map (B.snoc rblock) [W8._nul..]
-                                                    post     = B.pack $ map (\x -> BIT.xor x padbyte) is
-                                                    newcts   = map (\x -> B.append (B.append x post) dblock) rblocks
-                                                    mapo     = map o newcts
-                                                    (Just i) = elemIndex True mapo
-                                                    (Just b) = lookup i intByteMap                                                    
-                                                    padbyte' = succ padbyte
-                                                    is'      = b : is
+getIntermiedateState o r dblock 0 is padbyte = B.pack pt
+                                                    where bs = B.unpack r
+                                                          pt = zipWith BIT.xor bs is
+getIntermiedateState o r dblock n is padbyte = getIntermiedateState o r dblock (n-1) is' padbyte'
+                                                      where rblock   = B.replicate (n-1) 0
+                                                            rblocks  = map (B.snoc rblock) [W8._nul..]
+                                                            post     = B.pack $ map (\x -> BIT.xor x padbyte) is
+                                                            newcts   = map (\x -> B.append (B.append x post) dblock) rblocks
+                                                            mapo     = map o newcts
+                                                            (i:[])   = elemIndices True mapo --Should fail (ungracefully) if no or more than one byte returns true from the oracle
+                                                            (Just b) = lookup i intByteMap --Gives us CS[x]   
+                                                            isbyte   = BIT.xor b padbyte   --Gives us IS[x]                                            
+                                                            padbyte' = succ padbyte
+                                                            is'      = isbyte : is
     --NEED: variable to keep track of is bytes.
     --NEED: to keep track of expected padding bytes.
     --NEED: to update ciphertext on each call.

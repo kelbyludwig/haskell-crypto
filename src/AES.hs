@@ -111,8 +111,8 @@ pkcs7Strip :: B.ByteString -> Either String B.ByteString
 pkcs7Strip bs = case lookup lastByte byteMap of
                     Nothing -> Left "Invalid padding!"
                     Just i  -> if pkcs7Valid $ B.drop (len - i) bs then Right (B.take (len - i) bs) else Left "Invalid padding!"
-                where lastByte = B.last bs 
-                      len      = B.length bs
+                  where lastByte = B.last bs 
+                        len      = B.length bs
                     
 
 createECBOracle :: B.ByteString -> IO (B.ByteString -> B.ByteString)

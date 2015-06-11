@@ -21,32 +21,73 @@ challenge17 = do
                 key <- AES.createAESKey
                 iv  <- AES.createAESKey
                 let ct = AES.cbcEncrypt key iv $ AES.pkcs7 line 16
-                let oracle = paddingOracle key iv              
-                return $ show $ paddingOracleAttack oracle ct 
+                let oracle = paddingOracle key iv             
+                return $ show $ attack oracle iv ct
+
+attack oracle iv ct = getIntermiedateState oracle test 16 [] soh  
+                       where blocks = C.createBlocks ct 16
+                             len = length blocks
+                             test = blocks !! (len-1)
+                             soh = [W8._nul..] !! 1
+                             
+
+--Should discover intermiedate state of dblock by manipulating rblock and sending to oracle
+getIntermiedateState o dblock 15 is padbyte = mapo
+                                                   where n = 15
+                                                         rblock   = B.replicate (n-1) 0
+                                                         rblocks  = map (B.snoc rblock) [W8._nul..]
+                                                         post     = B.pack $ map (\x -> BIT.xor x padbyte) is
+                                                         newcts   = map (\x -> B.append (B.append x post) dblock) rblocks
+                                                         mapo     = map o newcts
+                                                         --(Just i) = elemIndex True mapo
+                                                         --(Just b) = lookup i intByteMap                                                    
+                                                         --padbyte' = succ padbyte
+                                                         --is'      = b : is
+    --NEED: variable to keep track of is byt
+getIntermiedateState o dblock n is padbyte = getIntermiedateState o dblock (n-1) is' padbyte'
+                                              where rblock   = B.replicate (n-1) 0
+                                                    rblocks  = map (B.snoc rblock) [W8._nul..]
+                                                    post     = B.pack $ map (\x -> BIT.xor x padbyte) is
+                                                    newcts   = map (\x -> B.append (B.append x post) dblock) rblocks
+                                                    mapo     = map o newcts
+                                                    (Just i) = elemIndex True mapo
+                                                    (Just b) = lookup i intByteMap                                                    
+                                                    padbyte' = succ padbyte
+                                                    is'      = b : is
+    --NEED: variable to keep track of is bytes.
+    --NEED: to keep track of expected padding bytes.
+    --NEED: to update ciphertext on each call.
+
+
+
+
+
 
 --paddingOracleAttack :: (B.ByteString -> Bool) -> B.ByteString -> W8.Word8
-paddingOracleAttack oracle ct = interBlock oracle ct (B.length ct) 
-                        
-interBlock oracle ct 0 = []       
-interBlock oracle ct n = byte : interBlock oracle ct (n-1)
-                         where blocks          = C.createBlocks ct 16
-                               len             = length blocks
-                               manipulateBlock = head $ drop (len-2) blocks
-                               manipulated     = blockByteOptions manipulateBlock (n-1)
-                               newCipherTexts  = map (\x -> insertBlock x (len-1) blocks) manipulated
-                               mapped          = map oracle newCipherTexts 
-                               (Just b)     = elemIndex True mapped
-                               (Just byte) = lookup b intByteMap
-
-
+--paddingOracleAttack oracle ct = interBlock oracle ct (B.length ct) 
+                       
+--attackBlock ct mb b o n = 
+--                           where opts = blockByteOptions manipulateBlock n
+--                                 cts  = map (\x -> insertBlock x (
+ 
+--interBlock oracle ct 0 b = []       
+--interBlock oracle ct n b = byte' : interBlock oracle ct' (n-1) (succ b)
+--                                  where blocks          = C.createBlocks ct 16
+--                                        len             = length blocks
+--                                        index           = ((len-2) * 16) + (n-1)
+--                                        newcts          = newCiphertexts blocks n
+--                                        mapped          = map oracle newcts 
+--                                        (Just bi)       = elemIndex True mapped
+--                                        (Just byte)     = lookup bi intByteMap
+--                                        byte'           = BIT.xor byte b
+--                                        ct' = insertByte ct index (BIT.xor byte' (succ b))
+--
 paddingOracle :: B.ByteString -> B.ByteString -> B.ByteString -> Bool
-paddingOracle key iv bs = case AES.pkcs7Strip pt of
-                            Left  _ -> False
-                            Right _ -> True
+paddingOracle key iv bs = pkcs7Valid pt
                           where pt = AES.cbcDecrypt key iv bs
 
 insertByte :: B.ByteString -> Int -> W8.Word8 -> B.ByteString
-insertByte bs index byte = B.pack $ concat [take index bytes, [byte],  drop (index+1) bytes]
+insertByte bs index byte = if index >= B.length bs then error "Insert index out of range" else B.pack $ concat [take index bytes, [byte],  drop (index+1) bytes]
                             where bytes = B.unpack bs
 
 insertBlock :: B.ByteString -> Int -> [B.ByteString] -> B.ByteString
@@ -60,5 +101,18 @@ blockByteOptions bs index = map (insertByte bs index) bytes
 intByteMap :: [(Int, W8.Word8)]
 intByteMap = zip [0..] [W8._nul..]
 
+byteIntMap :: [(W8.Word8, Int)]
+byteIntMap = zip [W8._nul..] [0..]
 
---We have c[n-1][16] ^ i[n-1][16] = p[n-1][16]
+newCiphertexts :: [B.ByteString] -> Int -> [B.ByteString]
+newCiphertexts bs index = map (\x -> insertBlock x (len-1) bs) opts
+                            where len  = length bs
+                                  mb   = head $ drop (len-2) bs
+                                  opts = blockByteOptions mb (index-1)
+
+pkcs7Valid bs = if length nubbed == 1 then True else False 
+                  where padbyte    = B.last bs
+                        (Just int) = lookup padbyte byteIntMap
+                        len        = B.length bs
+                        padding    = B.drop (len - int) bs
+                        nubbed     = B.group padding   

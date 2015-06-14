@@ -21,13 +21,23 @@ xor' key buf = case B.length key `compare` B.length buf of
                               k = B.take l key
                     EQ -> B.pack (B.zipWith xor key buf)
 
+--asciiScore :: B.ByteString -> Float
+--asciiScore buf = B.foldl (\acc x -> if
+--                        | W8.isAlpha x -> acc + 1.0
+--                        | W8.isSpace x -> acc + 1.0
+--                        | W8.isDigit x -> acc + 0.2
+--                        | W8.isPunctuation x -> acc + 0.02 
+--                        | otherwise -> acc - 1.0) 0.0 buf
+
 asciiScore :: B.ByteString -> Float
 asciiScore buf = B.foldl (\acc x -> if
-                        | W8.isAlpha x -> acc + 1.0
-                        | W8.isSpace x -> acc + 1.0
-                        | W8.isDigit x -> acc + 0.2
-                        | W8.isPunctuation x -> acc + 0.02 
-                        | otherwise -> acc - 1.0) 0.0 buf
+                        | W8.isAsciiLower x -> acc + 5.0
+                        | W8.isAsciiUpper x -> acc + 5.0
+                        | W8.isSpace x -> acc + 2.0
+                        | W8.isDigit x -> acc + 1.0
+                        | W8.isPunctuation x -> acc + 1.0
+                        | otherwise -> acc - 5.0) 0.0 buf
+
 
 findSingleByteXorKey :: B.ByteString -> (Float, B.ByteString)
 findSingleByteXorKey buf = (maximum scores, key) 

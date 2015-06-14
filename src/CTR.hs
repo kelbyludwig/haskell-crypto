@@ -6,6 +6,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified AES as AES
 import qualified Data.Binary.Builder as BU
+import Data.List
 
 ctrEncrypt :: B.ByteString -> B.ByteString -> B.ByteString -> B.ByteString 
 ctrEncrypt key nonce mes = B.take (B.length mes) $ C.xor' mes stream
@@ -32,3 +33,19 @@ challenge18 = do
                let nonce = E.toBytes "\x00\x00\x00\x00\x00\x00\x00\x00" 
                let key = E.toBytes "YELLOW SUBMARINE"
                return $ show $ ctrDecrypt key nonce str
+
+--
+fixedNonceAttack cts = C.breakViegnere cts
+
+challenge20 :: IO String
+challenge20 = do
+                f <- readFile "./src/Files/20.txt"
+                let ls = map E.fromBase64 $ lines f 
+                let key = E.toBytes "YELLOW SUBMARINE"
+                let nonce = E.toBytes "\x00\x00\x00\x00\x00\x00\x00\x00"
+                let cts = map (ctrEncrypt key nonce) ls
+                let l = minimum $ map B.length cts
+                let newls = map (B.take l) cts
+                let ctstream = B.concat newls
+                let stream  = fixedNonceAttack ctstream
+                return $ show $ map (\x -> B.take l $ C.xor' stream x) cts

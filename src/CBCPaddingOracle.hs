@@ -24,9 +24,12 @@ challenge17 = do
                 let oracle = paddingOracle key iv             
                 return $ show $ attack oracle iv ct
 
-attack oracle iv ct = getIntermiedateState oracle test2 test 16 [] soh 
+attack oracle iv ct = B.concat $ zipWith func f s
                        where blocks = C.createBlocks ct 16
                              len = length blocks
+                             f = [0..(len-2)]
+                             s = [1..(len-1)]
+                             func = \x y -> getIntermiedateState oracle (blocks !! x) (blocks !! y) 16 [] soh
                              test = blocks !! (len-1)
                              test2 = blocks !! (len-2)
                              soh = [W8._nul..] !! 1
@@ -47,34 +50,7 @@ getIntermiedateState o r dblock n is padbyte = getIntermiedateState o r dblock (
                                                             isbyte   = BIT.xor b padbyte   --Gives us IS[x]                                            
                                                             padbyte' = succ padbyte
                                                             is'      = isbyte : is
-    --NEED: variable to keep track of is bytes.
-    --NEED: to keep track of expected padding bytes.
-    --NEED: to update ciphertext on each call.
 
-
-
-
-
-
---paddingOracleAttack :: (B.ByteString -> Bool) -> B.ByteString -> W8.Word8
---paddingOracleAttack oracle ct = interBlock oracle ct (B.length ct) 
-                       
---attackBlock ct mb b o n = 
---                           where opts = blockByteOptions manipulateBlock n
---                                 cts  = map (\x -> insertBlock x (
- 
---interBlock oracle ct 0 b = []       
---interBlock oracle ct n b = byte' : interBlock oracle ct' (n-1) (succ b)
---                                  where blocks          = C.createBlocks ct 16
---                                        len             = length blocks
---                                        index           = ((len-2) * 16) + (n-1)
---                                        newcts          = newCiphertexts blocks n
---                                        mapped          = map oracle newcts 
---                                        (Just bi)       = elemIndex True mapped
---                                        (Just byte)     = lookup bi intByteMap
---                                        byte'           = BIT.xor byte b
---                                        ct' = insertByte ct index (BIT.xor byte' (succ b))
---
 paddingOracle :: B.ByteString -> B.ByteString -> B.ByteString -> Bool
 paddingOracle key iv bs = pkcs7Valid pt
                           where pt = AES.cbcDecrypt key iv bs

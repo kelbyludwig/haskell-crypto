@@ -3,6 +3,7 @@ module Main where
 import System.Environment
 import Challenges
 import CBCPaddingOracle
+import CTR
 
 dispatch :: [(String, IO String)]
 dispatch = [ ("1", challenge1),
@@ -21,7 +22,8 @@ dispatch = [ ("1", challenge1),
              ("14", challenge14),
              ("15", challenge15),
              ("16", challenge16),
-             ("17", challenge17) ]
+             ("17", challenge17), 
+             ("18", challenge18) ]
 
 
 main :: IO ()

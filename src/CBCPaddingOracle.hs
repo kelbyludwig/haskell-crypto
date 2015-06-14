@@ -24,21 +24,28 @@ challenge17 = do
                 let oracle = paddingOracle key iv             
                 return $ show $ attack oracle iv ct
 
-attack oracle iv ct = B.concat $ zipWith func f s
+attack :: (B.ByteString -> Bool) -> B.ByteString -> B.ByteString -> B.ByteString
+attack oracle _ ct = B.concat $ zipWith func f s
                        where blocks = C.createBlocks ct 16
                              len = length blocks
                              f = [0..(len-2)]
                              s = [1..(len-1)]
                              func = \x y -> getIntermiedateState oracle (blocks !! x) (blocks !! y) 16 [] soh
-                             test = blocks !! (len-1)
-                             test2 = blocks !! (len-2)
                              soh = [W8._nul..] !! 1
                              
 
 --Should discover intermiedate state of dblock by manipulating rblock and sending to oracle
-getIntermiedateState o r dblock 0 is padbyte = B.pack pt
+--KEY VISUAL:
+--[random 15 bytes][0-255] => byte A 
+--[random 14 bytes][0-255][byte A xor \x02] => byte B
+--[random 13 bytes][0-255][byte B xor \x03][byte B xor \0x3] => byte C
+-- ....
+
+getIntermiedateState :: (B.ByteString -> Bool) -> B.ByteString -> B.ByteString -> Int -> [W8.Word8] -> W8.Word8 -> B.ByteString
+getIntermiedateState _ r _ 0 is _ = B.pack pt
                                                     where bs = B.unpack r
                                                           pt = zipWith BIT.xor bs is
+
 getIntermiedateState o r dblock n is padbyte = getIntermiedateState o r dblock (n-1) is' padbyte'
                                                       where rblock   = B.replicate (n-1) 0
                                                             rblocks  = map (B.snoc rblock) [W8._nul..]
@@ -79,6 +86,7 @@ newCiphertexts bs index = map (\x -> insertBlock x (len-1) bs) opts
                                   mb   = head $ drop (len-2) bs
                                   opts = blockByteOptions mb (index-1)
 
+pkcs7Valid :: B.ByteString -> Bool
 pkcs7Valid bs = if length nubbed == 1 then True else False 
                   where padbyte    = B.last bs
                         (Just int) = lookup padbyte byteIntMap

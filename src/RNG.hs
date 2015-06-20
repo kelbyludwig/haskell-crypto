@@ -36,27 +36,33 @@ temper i = op3
 
 untemper :: Word32 -> Word32
 untemper i = op3
-             where op0 = BIT.xor i (BIT.shiftL i 18)
+             where op0 = BIT.xor i (BIT.shiftR i 18)
                    op1 = BIT.xor op0 $ 4022730752 .&. (BIT.shiftL op0 15)
-                   op2 = BIT.xor op1 $ 2636928640 .&. (BIT.shiftL op1 7)
-                   op3 = BIT.xor op2 (BIT.shiftR op2 11)
+                   op2 = BIT.xor op1 ((sf $ sf $ sf $ sf $ BIT.shiftL op1 7) .&. 2636928640)
+                   sf  = \x -> BIT.shiftL (BIT.xor op1 (x .&. 2636928640)) 7
+                   op3 = BIT.xor op2 $ BIT.shiftR (BIT.xor op2 (BIT.shiftR op2 11)) 11
             
 
 generate_numbers :: MRNG -> MRNG
 generate_numbers (MRNG state _) = MRNG (generate_numbers' state state 0) 0
 
-generate_numbers' :: [Word32] -> [Word32] -> Word32 -> [Word32]                              
-generate_numbers' (x:[]) s i = if mod y 2 == 0 then [y'] else [BIT.xor y' 2567483615] 
+generate_numbers' :: [Word32] -> [Word32] -> Int -> [Word32]                              
+generate_numbers' (x:[]) s i = s'
                                  where y  = (x .&. 0x80000000) + ((s !! (fromIntegral (mod (i+1) 624) :: Int)) .&. 0x7fffffff)
                                        y' = BIT.xor (BIT.shiftR y 1)  (s !! (fromIntegral (mod (i+397) 624) :: Int))
-generate_numbers' (x:xs) s i = if mod y 2 == 0 then y' : generate_numbers' xs s (i+1) else (BIT.xor y' 2567483615) : generate_numbers' xs s (i+1) 
+                                       s' = if mod y 2 == 0 then insert s y' i else insert s (BIT.xor y' 2567483615) i
+generate_numbers' (x:xs) s i = generate_numbers' xs s' (i+1)
                                  where y  = (x .&. 0x80000000) + ((s !! (fromIntegral (mod (i+1) 624) :: Int)) .&. 0x7fffffff)
                                        y' = BIT.xor (BIT.shiftR y 1)  (s !! (fromIntegral (mod (i+397) 624) :: Int))
+                                       s' = if mod y 2 == 0 then insert s y' i else insert s (BIT.xor y' 2567483615) i
 
-takeRands :: MRNG -> Word32 -> ([Word32], MRNG)
+insert :: [Word32] -> Word32 -> Int -> [Word32]
+insert = \list item index -> (take index list) ++ [item] ++ (drop (index+1) list)
+
+takeRands :: MRNG -> Int -> ([Word32], MRNG)
 takeRands mrng num = takeRands' mrng num [] 
 
-takeRands' :: MRNG -> Word32 -> [Word32] -> ([Word32], MRNG)
+takeRands' :: MRNG -> Int -> [Word32] -> ([Word32], MRNG)
 takeRands' mrng 0 list = (list, mrng)
 takeRands' mrng num list = let (x,m) = extract_number mrng in takeRands' m (num-1) (x:list)
 
@@ -86,3 +92,17 @@ challenge22 = do
                 cur <- round `fmap` getPOSIXTime
                 putStrLn $ "The number recieved was: " ++ (show ran)
                 return $ show $ timeSeedCrack (cur+2000) ran
+
+challenge23 :: IO String
+challenge23 = do
+                let mrng = initializeGenerator 1
+                let (ls, mrng') = takeRands mrng 624
+                let (MRNG s i) = mrng'
+                putStrLn $ "Normal state: " ++ (show $ take 5 s)
+                putStrLn $ "Normal index: " ++ (show i)
+                putStrLn $ "Normal rands: " ++ (show $ take 5 ls)
+                let uls = map untemper ls
+                putStrLn $ "Untempered state: " ++ (show $ take 5 uls)
+                let mrngRec = MRNG uls 0
+                putStrLn $ show $ let (x,_) = extract_number mrng' in x
+                return $ show $   let (x,_) = extract_number mrngRec in x

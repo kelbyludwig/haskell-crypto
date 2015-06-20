@@ -25,7 +25,7 @@ extract_number :: MRNG -> (Word32, MRNG)
 extract_number (MRNG s i) = case i == 0 of 
                                 False -> (temper (s !! (fromIntegral i :: Int)), MRNG s (mod (i+1) 624))
                                 True  -> let mrng' = generate_numbers (MRNG s i) in
-                                           let (MRNG s' i') = mrng' in (temper (s' !! (fromIntegral i' :: Int)), mrng')
+                                           let (MRNG s' i') = mrng' in (temper (s' !! (fromIntegral i' :: Int)), (MRNG s' 1))
 
 temper :: Word32 -> Word32
 temper i = op3
@@ -44,17 +44,18 @@ untemper i = op3
             
 
 generate_numbers :: MRNG -> MRNG
-generate_numbers (MRNG state _) = MRNG (generate_numbers' state state 0) 0
+generate_numbers (MRNG state _) = MRNG (generate_numbers' state 0) 0
 
-generate_numbers' :: [Word32] -> [Word32] -> Int -> [Word32]                              
-generate_numbers' (x:[]) s i = s'
-                                 where y  = (x .&. 0x80000000) + ((s !! (fromIntegral (mod (i+1) 624) :: Int)) .&. 0x7fffffff)
-                                       y' = BIT.xor (BIT.shiftR y 1)  (s !! (fromIntegral (mod (i+397) 624) :: Int))
-                                       s' = if mod y 2 == 0 then insert s y' i else insert s (BIT.xor y' 2567483615) i
-generate_numbers' (x:xs) s i = generate_numbers' xs s' (i+1)
-                                 where y  = (x .&. 0x80000000) + ((s !! (fromIntegral (mod (i+1) 624) :: Int)) .&. 0x7fffffff)
-                                       y' = BIT.xor (BIT.shiftR y 1)  (s !! (fromIntegral (mod (i+397) 624) :: Int))
-                                       s' = if mod y 2 == 0 then insert s y' i else insert s (BIT.xor y' 2567483615) i
+
+generate_numbers' :: [Word32] -> Int -> [Word32]                              
+generate_numbers' state 624 = state
+generate_numbers' state i   = generate_numbers' state' (i+1)
+                               where mti    = state !! i
+                                     mti'   = state !! (mod (i+1) 624)
+                                     y      = (mti .&. 0x80000000) + (mti' .&. 0x7fffffff) 
+                                     mti''  = state !! (mod (i+397) 624)
+                                     y'     = BIT.xor mti'' (BIT.shiftR y 1)
+                                     state' = if odd y then insert state y' i else insert state (BIT.xor y' 2567483615) i
 
 insert :: [Word32] -> Word32 -> Int -> [Word32]
 insert = \list item index -> (take index list) ++ [item] ++ (drop (index+1) list)
@@ -98,11 +99,7 @@ challenge23 = do
                 let mrng = initializeGenerator 1
                 let (ls, mrng') = takeRands mrng 624
                 let (MRNG s i) = mrng'
-                putStrLn $ "Normal state: " ++ (show $ take 5 s)
-                putStrLn $ "Normal index: " ++ (show i)
-                putStrLn $ "Normal rands: " ++ (show $ take 5 ls)
-                let uls = map untemper ls
-                putStrLn $ "Untempered state: " ++ (show $ take 5 uls)
+                let uls = reverse $ map untemper ls
                 let mrngRec = MRNG uls 0
                 putStrLn $ show $ let (x,_) = extract_number mrng' in x
                 return $ show $   let (x,_) = extract_number mrngRec in x

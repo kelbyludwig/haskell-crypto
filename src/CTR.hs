@@ -6,7 +6,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified AES as AES
 import qualified Data.Binary.Builder as BU
-import Data.List
 
 ctrEncrypt :: B.ByteString -> B.ByteString -> B.ByteString -> B.ByteString 
 ctrEncrypt key nonce mes = B.take (B.length mes) $ C.xor' mes stream
@@ -35,6 +34,7 @@ challenge18 = do
                return $ show $ ctrDecrypt key nonce str
 
 --
+fixedNonceAttack :: B.ByteString -> B.ByteString
 fixedNonceAttack cts = C.breakViegnere cts
 
 challenge20 :: IO String

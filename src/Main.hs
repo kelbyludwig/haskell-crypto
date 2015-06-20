@@ -4,7 +4,6 @@ import System.Environment
 import Challenges
 import CBCPaddingOracle
 import CTR
-import RNG
 
 dispatch :: [(String, IO String)]
 dispatch = [ ("1", challenge1),
@@ -25,9 +24,7 @@ dispatch = [ ("1", challenge1),
              ("16", challenge16),
              ("17", challenge17), 
              ("18", challenge18),
-             ("20", challenge20),
-             ("21", challenge21) ]
-
+             ("20", challenge20)]
 
 main :: IO ()
 main = do

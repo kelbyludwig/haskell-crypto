@@ -2,9 +2,14 @@ module RNG where
 
 import Data.Bits as BIT
 import System.Random as R
+import Crypto as C
+import Data.ByteString hiding (take, drop, putStrLn, map, reverse, head, dropWhile)
+import Data.ByteString.Lazy hiding (drop, putStrLn, map, reverse, head, dropWhile)
 import Data.Time.Clock.POSIX
 import Control.Concurrent
 import Data.Word
+import Data.Binary
+import Data.Int
 
 data MRNG = MRNG [Word32] Word32
 
@@ -58,7 +63,13 @@ generate_numbers' state i   = generate_numbers' state' (i+1)
                                      state' = if odd y then insert state y' i else insert state (BIT.xor y' 2567483615) i
 
 insert :: [Word32] -> Word32 -> Int -> [Word32]
-insert = \list item index -> (take index list) ++ [item] ++ (drop (index+1) list)
+insert = \list item index -> (Prelude.take index list) ++ [item] ++ (drop (index+1) list)
+
+takeBytes :: MRNG -> Int -> Data.ByteString.Lazy.ByteString 
+takeBytes mrng num = Data.ByteString.Lazy.take (fromIntegral num :: Int64) $ Data.ByteString.Lazy.concat $ map encode nums 
+                     where (ns,_) = takeRands mrng num 
+                           nums   = reverse ns
+                           
 
 takeRands :: MRNG -> Int -> ([Word32], MRNG)
 takeRands mrng num = takeRands' mrng num [] 
@@ -70,10 +81,19 @@ takeRands' mrng num list = let (x,m) = extract_number mrng in takeRands' m (num-
 lower32 :: Word32 -> Word32
 lower32 = \x -> x .&. ((2^32)-1)
 
+lower16 :: Word32 -> Word32
+lower16 = \x -> x .&. ((2^16)-1)
+
 timeSeedCrack :: Word32 -> Word32 -> Word32
 timeSeedCrack cur expect = head $ dropWhile f (reverse [min..cur])
                             where f = \x -> if let (r,_) = extract_number (initializeGenerator x) in r == expect then False else True
                                   min = cur - 4000
+
+mtStream :: Word32 -> Data.ByteString.ByteString -> Data.ByteString.ByteString
+mtStream key mes = C.xor' strm' mes
+                    where mrng = initializeGenerator key 
+                          strm = takeBytes mrng (fromIntegral (Data.ByteString.length mes) :: Int)
+                          strm' = Data.ByteString.concat $ toChunks strm
 
 challenge21 :: IO String
 challenge21 = do
@@ -84,7 +104,7 @@ challenge21 = do
 challenge22 :: IO String
 challenge22 = do
                 r <- R.newStdGen
-                let sleepy = head $ take 1 (R.randomRs (40,1000) r) :: Int 
+                let sleepy = head $ Prelude.take 1 (R.randomRs (40,1000) r) :: Int 
                 seed <- round `fmap` getPOSIXTime
                 let seed' = fromIntegral (seed + sleepy) :: Word32
                 putStrLn $ "The seed is: " ++ (show seed')

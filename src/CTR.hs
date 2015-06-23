@@ -49,3 +49,23 @@ challenge20 = do
                 let ctstream = B.concat newls
                 let stream  = fixedNonceAttack ctstream
                 return $ show $ map (\x -> B.take l $ C.xor' stream x) cts
+
+ctrEdit :: B.ByteString -> B.ByteString -> B.ByteString -> Int -> B.ByteString -> B.ByteString
+ctrEdit ct key nonce offset insert = ctrEncrypt key nonce $ B.concat [pre, insert, post]
+                                     where mes  = ctrDecrypt key nonce ct
+                                           len  = B.length insert
+                                           pre  = B.take offset mes
+                                           post = B.drop (offset + len) mes
+
+challenge25 :: IO String
+challenge25 = do 
+                let ct = E.fromBase64 "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ=="
+                let key = E.toBytes "YELLOW SUBMARINE"
+                let nonce = E.toBytes "\x00\x00\x00\x00\x00\x00\x00\x00"
+                let insert = E.toBytes "test"
+                let len = B.length ct
+                let api = \i o -> ctrEdit ct key nonce o i --This is the API that is exposed to the attacker.
+                let ctrDec = \x -> B.singleton $ B.index (api (E.toBytes "A") x) x --Insert a known letter at every index of the ct
+                let as = E.toBytes $ Prelude.concat $ replicate len "A" --A bytestring of A's
+                let stream = C.xor' as (B.concat $ map ctrDec [0..(B.length ct)-1]) --Recover the keystream
+                return $ show $ C.xor' stream ct --Recover the plaintext from the keystream

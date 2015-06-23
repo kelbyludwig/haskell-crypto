@@ -3,10 +3,10 @@ module RNG where
 import Data.Bits as BIT
 import System.Random as R
 import Crypto as C
-import Data.ByteString hiding (take, drop, putStrLn, map, reverse, head, dropWhile)
+import Encoding as E
+import Data.ByteString hiding (putStrLn, map, reverse, head, dropWhile)
 import Data.ByteString.Lazy hiding (drop, putStrLn, map, reverse, head, dropWhile)
 import Data.Time.Clock.POSIX
-import Control.Concurrent
 import Data.Word
 import Data.Binary
 import Data.Int
@@ -18,12 +18,12 @@ initializeGenerator seed = MRNG (initializeGenerator' [seed'] 1) 0
                             where seed' = lower32 seed
 
 initializeGenerator' :: [Word32] -> Word32 -> [Word32]
-initializeGenerator' mt 623 = mt ++ [lower32 $ 1812433253 * (BIT.xor mtval $ BIT.shiftR mtval 30) + index]
-                                    where mtval = mt !! (fromIntegral (index - 1) :: Int)
-                                          index = 623
-initializeGenerator' mt index = initializeGenerator' mt' (index+1) 
-                                      where mtval = mt !! (fromIntegral (index - 1) :: Int)
-                                            gend = lower32 $ 1812433253 * (BIT.xor mtval $ BIT.shiftR mtval 30) + index
+initializeGenerator' mt 623 = mt ++ [lower32 $ 1812433253 * (BIT.xor mtval $ BIT.shiftR mtval 30) + ind]
+                                    where mtval = mt !! (fromIntegral (ind - 1) :: Int)
+                                          ind = 623
+initializeGenerator' mt ind = initializeGenerator' mt' (ind+1) 
+                                      where mtval = mt !! (fromIntegral (ind - 1) :: Int)
+                                            gend = lower32 $ 1812433253 * (BIT.xor mtval $ BIT.shiftR mtval 30) + ind
                                             mt' = mt ++ [gend]
 
 extract_number :: MRNG -> (Word32, MRNG)
@@ -63,14 +63,13 @@ generate_numbers' state i   = generate_numbers' state' (i+1)
                                      state' = if odd y then insert state y' i else insert state (BIT.xor y' 2567483615) i
 
 insert :: [Word32] -> Word32 -> Int -> [Word32]
-insert = \list item index -> (Prelude.take index list) ++ [item] ++ (drop (index+1) list)
+insert = \list item ind -> (Prelude.take ind list) ++ [item] ++ (Prelude.drop (ind+1) list)
 
 takeBytes :: MRNG -> Int -> Data.ByteString.Lazy.ByteString 
 takeBytes mrng num = Data.ByteString.Lazy.take (fromIntegral num :: Int64) $ Data.ByteString.Lazy.concat $ map encode nums 
-                     where (ns,_) = takeRands mrng num 
+                     where (ns,_) = takeRands mrng ((quot num 32) +1)
                            nums   = reverse ns
                            
-
 takeRands :: MRNG -> Int -> ([Word32], MRNG)
 takeRands mrng num = takeRands' mrng num [] 
 
@@ -85,15 +84,9 @@ lower16 :: Word32 -> Word32
 lower16 = \x -> x .&. ((2^16)-1)
 
 timeSeedCrack :: Word32 -> Word32 -> Word32
-timeSeedCrack cur expect = head $ dropWhile f (reverse [min..cur])
+timeSeedCrack cur expect = head $ dropWhile f (reverse [minn..cur])
                             where f = \x -> if let (r,_) = extract_number (initializeGenerator x) in r == expect then False else True
-                                  min = cur - 4000
-
-mtStream :: Word32 -> Data.ByteString.ByteString -> Data.ByteString.ByteString
-mtStream key mes = C.xor' strm' mes
-                    where mrng = initializeGenerator key 
-                          strm = takeBytes mrng (fromIntegral (Data.ByteString.length mes) :: Int)
-                          strm' = Data.ByteString.concat $ toChunks strm
+                                  minn = cur - 4000
 
 challenge21 :: IO String
 challenge21 = do
@@ -118,8 +111,26 @@ challenge23 :: IO String
 challenge23 = do
                 let mrng = initializeGenerator 1
                 let (ls, mrng') = takeRands mrng 624
-                let (MRNG s i) = mrng'
                 let uls = reverse $ map untemper ls
                 let mrngRec = MRNG uls 0
                 putStrLn $ show $ let (x,_) = extract_number mrng' in x
                 return $ show $   let (x,_) = extract_number mrngRec in x
+
+convertBStoWord32 :: Data.ByteString.ByteString -> Word32
+convertBStoWord32 x = decode (fromStrict x) :: Word32
+
+--1. You know the number of random bytes because it increases
+--   the known-plaintext length.
+--2. Drop the number of random bytes + number of known bytes to 
+--   closest 32 bit boundary.
+--3. You can xor the known plaintext with the dropped ciphertext.
+--   This will get you a number from the keystream.
+--4. Since the key is only 16 bits, we can just bruteforce the key.
+challenge24 :: IO String
+challenge24 = do
+                r <- R.newStdGen
+                let rannum = head $ Prelude.take 1 (R.randomRs (0,100) r) :: Int
+                let ranlet = Prelude.take rannum (R.randomRs ('A', 'Z') r)
+                let ranbyt = E.toBytes ranlet
+                let key = 5621
+                return $ show "TODO: do challenge 24." 

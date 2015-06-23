@@ -93,3 +93,23 @@ pkcs7Valid bs = if length nubbed == 1 then True else False
                         len        = B.length bs
                         padding    = B.drop (len - int) bs
                         nubbed     = B.group padding   
+
+nonAsciiBytes :: B.ByteString -> Bool
+nonAsciiBytes bs = if length highs > 0 then True else False
+                    where bytes = B.unpack bs
+                          highs = filter (not . W8.isAscii) bytes
+
+challenge27 :: IO String
+challenge27 = do
+                let key = E.toBytes "YELLOW SUBMARINE"
+                let iv = key
+                let mes = E.toBytes "En garde, I'll let you try my Wu-Tang style. Bring da ruckus."
+                let ct = AES.cbcEncrypt key iv mes 
+                let b1 = B.take 16 ct
+                let b2 = B.take 16 $ B.drop 16 ct
+                let b3 = B.take 16 $ B.drop 32 ct
+                let ct' = B.concat [b1, B.replicate 16 0, b1]
+                let mes' = AES.cbcDecrypt key iv ct'
+                let p1 = B.take 16 mes'
+                let p3 = B.take 16 $ B.drop 32 mes'
+                return $ show $ (nonAsciiBytes mes', C.xor' p1 p3)

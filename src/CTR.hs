@@ -69,3 +69,17 @@ challenge25 = do
                 let as = E.toBytes $ Prelude.concat $ replicate len "A" --A bytestring of A's
                 let stream = C.xor' as (B.concat $ map ctrDec [0..(B.length ct)-1]) --Recover the keystream
                 return $ show $ C.xor' stream ct --Recover the plaintext from the keystream
+
+challenge26 :: IO String
+challenge26 = do
+                let mes = E.toBytes "comment1=cooking%20MCs;userdata=AAAAAAAAAAAAAAAAAAAAAAAA;comment2=like-a-pound-of-bacon"
+                let key = E.toBytes "YELLOW SUBMARINE"
+                let nonce = E.toBytes "\x00\x00\x00\x00\x00\x00\x00\x00"
+                let ct = ctrEncrypt key nonce mes
+                let as = E.toBytes $ Prelude.concat $ replicate 11 "A"
+                let encas = B.take 11 $ B.drop 45 ct
+                let admin = C.xor' as $ C.xor' (E.toBytes ";admin=true") encas 
+                let newct = B.concat [B.take 45 ct, admin, B.drop 56 ct]
+                let newms = ctrDecrypt key nonce newct
+                return $ show newms
+

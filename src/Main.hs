@@ -5,6 +5,7 @@ import Challenges
 import CBCPaddingOracle
 import CTR
 import RNG
+import SHA1
 
 dispatch :: [(String, IO String)]
 dispatch = [ ("1", challenge1),
@@ -32,7 +33,8 @@ dispatch = [ ("1", challenge1),
              ("24", challenge24),
              ("25", challenge25),
              ("26", challenge26),
-             ("27", challenge27)]
+             ("27", challenge27),
+             ("28", challenge28)]
 
 main :: IO ()
 main = do
